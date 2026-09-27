@@ -1,12 +1,6 @@
 # Módulos Servicio y Cita — API REST (SGB)
 Evidencia **GA7-220501096-AA3-EV01** — Codificación de módulos del software
 
-> Nota sobre la referencia de esta evidencia: este README corresponde a
-> **AA3-EV01**. (En la Evidencia anterior, AA2-EV02, el instructor señaló
-> que en parte de la documentación seguía apareciendo "EV01" por error;
-> aquí se revisó con cuidado que la numeración fuera consistente en todo
-> el documento.)
-
 ## Qué hace este proyecto
 
 Una **API REST** (con Spring Boot y Spring Data JPA) para los módulos

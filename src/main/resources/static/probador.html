@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SGB — Probador de la API</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    max-width: 900px; margin: 24px auto; padding: 0 16px; color: #1a1a1a; background: #f7f7f8;
+  }
+  h1 { font-size: 1.4rem; margin-bottom: 4px; }
+  p.subtitulo { color: #555; margin-top: 0; }
+  section {
+    background: #fff; border: 1px solid #ddd; border-radius: 10px;
+    padding: 16px 20px; margin-bottom: 20px;
+  }
+  h2 { font-size: 1.1rem; margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 8px; }
+  h3 { font-size: 0.95rem; color: #333; margin: 18px 0 8px; }
+  label { display: block; font-size: 0.82rem; color: #444; margin-top: 8px; }
+  input {
+    width: 100%; padding: 7px 9px; border: 1px solid #ccc; border-radius: 6px;
+    font-size: 0.92rem; margin-top: 2px;
+  }
+  .fila { display: flex; gap: 10px; flex-wrap: wrap; }
+  .fila > div { flex: 1; min-width: 140px; }
+  button {
+    margin-top: 12px; margin-right: 8px; padding: 8px 14px; border: none;
+    border-radius: 6px; background: #2d5fda; color: #fff; font-size: 0.88rem;
+    cursor: pointer;
+  }
+  button.secundario { background: #6b6b6b; }
+  button.peligro { background: #c0392b; }
+  button:hover { opacity: 0.9; }
+  pre#resultado {
+    background: #10131a; color: #d6f0d6; padding: 12px; border-radius: 8px;
+    overflow-x: auto; font-size: 0.82rem; min-height: 40px; white-space: pre-wrap; word-break: break-word;
+  }
+  #estado { font-weight: 600; margin-bottom: 6px; }
+  #estado.ok { color: #1e8e3e; }
+  #estado.error { color: #c0392b; }
+  .ayuda { font-size: 0.78rem; color: #777; margin: 2px 0 0; }
+</style>
+</head>
+<body>
+
+<h1>SGB — Probador de la API (Servicio y Cita)</h1>
+<p class="subtitulo">
+  Herramienta simple para probar los endpoints sin instalar nada más.
+  Los resultados de cada acción aparecen abajo, en "Resultado de la última acción" —
+  eso es lo que debes capturar en cada pantallazo de la Etapa 4.
+</p>
+
+<section>
+  <h2>Resultado de la última acción</h2>
+  <div id="estado">(todavía no se ha probado nada)</div>
+  <pre id="resultado">Presiona cualquier botón de abajo para ver aquí la respuesta de la API.</pre>
+</section>
+
+<section>
+  <h2>Módulo Servicio</h2>
+
+  <button onclick="listarServicios(false)">Listar servicios activos</button>
+  <button class="secundario" onclick="listarServicios(true)">Listar TODOS (incluye desactivados)</button>
+
+  <h3>Crear un servicio nuevo</h3>
+  <div class="fila">
+    <div><label>Nombre</label><input id="srv-nombre" value="Corte degradado"></div>
+    <div><label>Precio</label><input id="srv-precio" value="25000"></div>
+    <div><label>Duración (min)</label><input id="srv-duracion" value="30"></div>
+  </div>
+  <label>Descripción</label><input id="srv-descripcion" value="Corte moderno con maquina y tijera">
+  <button onclick="crearServicio()">Crear servicio</button>
+
+  <h3>Consultar / desactivar un servicio existente</h3>
+  <div class="fila">
+    <div><label>id del servicio</label><input id="srv-id" placeholder="ej: 1"></div>
+  </div>
+  <button onclick="consultarServicio()">Consultar</button>
+  <button class="peligro" onclick="desactivarServicio()">Desactivar</button>
+</section>
+
+<section>
+  <h2>Módulo Cita</h2>
+
+  <button onclick="listarCitas()">Listar todas las citas</button>
+
+  <h3>Agendar una cita nueva</h3>
+  <p class="ayuda">
+    Usa ids reales de la tabla usuario: por ejemplo, un cliente (rol Cliente)
+    y un barbero (rol Barbero) que ya existan en tu base de datos, y un id
+    de servicio activo (revisa la lista de servicios de arriba).
+  </p>
+  <div class="fila">
+    <div><label>id cliente</label><input id="cita-cliente" placeholder="ej: 6"></div>
+    <div><label>id barbero</label><input id="cita-barbero" placeholder="ej: 4"></div>
+    <div><label>id servicio</label><input id="cita-servicio" placeholder="ej: 1"></div>
+  </div>
+  <div class="fila">
+    <div><label>Fecha y hora</label><input id="cita-fecha" type="datetime-local"></div>
+    <div><label>Notas (opcional)</label><input id="cita-notas" placeholder="ej: primera vez"></div>
+  </div>
+  <button onclick="crearCita()">Agendar cita</button>
+
+  <h3>Consultar / cambiar el estado de una cita existente</h3>
+  <div class="fila">
+    <div><label>id de la cita</label><input id="cita-id" placeholder="ej: 1"></div>
+  </div>
+  <button onclick="consultarCita()">Consultar</button>
+  <button onclick="cambiarEstadoCita('confirmar')">Confirmar</button>
+  <button class="secundario" onclick="cambiarEstadoCita('completar')">Completar</button>
+  <button class="peligro" onclick="cambiarEstadoCita('cancelar')">Cancelar</button>
+</section>
+
+<script>
+  function ahoraMasUnaHora() {
+    const d = new Date(Date.now() + 60 * 60 * 1000);
+    d.setMinutes(0, 0, 0);
+    return d.toISOString().slice(0, 16);
+  }
+  document.getElementById('cita-fecha').value = ahoraMasUnaHora();
+
+  function mostrar(status, cuerpo) {
+    const estado = document.getElementById('estado');
+    const resultado = document.getElementById('resultado');
+    const ok = status >= 200 && status < 300;
+    estado.textContent = 'HTTP ' + status + (ok ? ' — correcto' : ' — hubo un error');
+    estado.className = ok ? 'ok' : 'error';
+    resultado.textContent = typeof cuerpo === 'string' ? cuerpo : JSON.stringify(cuerpo, null, 2);
+  }
+
+  async function llamar(metodo, url, cuerpo) {
+    try {
+      const opciones = { method: metodo, headers: {} };
+      if (cuerpo !== undefined) {
+        opciones.headers['Content-Type'] = 'application/json';
+        opciones.body = JSON.stringify(cuerpo);
+      }
+      const resp = await fetch(url, opciones);
+      let datos;
+      const texto = await resp.text();
+      try { datos = texto ? JSON.parse(texto) : '(sin contenido, esto es normal en Desactivar/Cancelar/Eliminar)'; }
+      catch { datos = texto; }
+      mostrar(resp.status, datos);
+    } catch (err) {
+      mostrar(0, 'No se pudo conectar con la API en ' + url +
+        '. Verifica que el proyecto este corriendo (revisa la consola de NetBeans) y que la URL use el puerto 8081.\n\nDetalle tecnico: ' + err);
+    }
+  }
+
+  function listarServicios(todos) {
+    llamar('GET', '/api/servicios' + (todos ? '?todos=true' : ''));
+  }
+  function crearServicio() {
+    llamar('POST', '/api/servicios', {
+      nombre: document.getElementById('srv-nombre').value,
+      descripcion: document.getElementById('srv-descripcion').value,
+      precio: Number(document.getElementById('srv-precio').value),
+      duracionMin: Number(document.getElementById('srv-duracion').value)
+    });
+  }
+  function consultarServicio() {
+    llamar('GET', '/api/servicios/' + document.getElementById('srv-id').value);
+  }
+  function desactivarServicio() {
+    llamar('DELETE', '/api/servicios/' + document.getElementById('srv-id').value);
+  }
+
+  function listarCitas() {
+    llamar('GET', '/api/citas');
+  }
+  function crearCita() {
+    llamar('POST', '/api/citas', {
+      idCliente: Number(document.getElementById('cita-cliente').value),
+      idBarbero: Number(document.getElementById('cita-barbero').value),
+      idServicio: Number(document.getElementById('cita-servicio').value),
+      fechaHora: document.getElementById('cita-fecha').value,
+      notas: document.getElementById('cita-notas').value
+    });
+  }
+  function consultarCita() {
+    llamar('GET', '/api/citas/' + document.getElementById('cita-id').value);
+  }
+  function cambiarEstadoCita(accion) {
+    llamar('PUT', '/api/citas/' + document.getElementById('cita-id').value + '/' + accion);
+  }
+</script>
+</body>
+</html>

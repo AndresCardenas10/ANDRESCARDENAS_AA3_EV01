@@ -1,0 +1,22 @@
+# Maven
+target/
+
+# Compilados de Java
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+nbproject/
+nb-configuration.xml
+.settings/
+.classpath
+.project
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
